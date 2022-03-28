@@ -1,5 +1,5 @@
 #include "Notebook.hpp"
-#include "Direction.hpp"
+#include "sources/Direction.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -94,7 +94,7 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
 string Notebook::read(int page, int row, int column, Direction direction, int length){
     //check if the given arguments exceed the 100 chars limit or go to the negative (in case of negative length)
     if ((direction == Direction::Horizontal && (column + length > 100 || column + length < -1)) || 
-         direction == Direction::Vertical && row + length < -1){
+        (direction == Direction::Vertical && row + length < -1)){
         throw out_of_range("You are trying to read past line limits!");
     }
     //check if the given page, row, and column are non-negative
@@ -162,7 +162,7 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
 void Notebook::erase(int page, int row, int column, Direction direction, int length){
     //check if the given arguments exceed the 100 chars limit or go to the negative (in case of negative length)
     if ((direction == Direction::Horizontal && (column + length > 100 || column + length < -1)) || 
-         direction == Direction::Vertical && row + length < -1){
+        (direction == Direction::Vertical && row + length < -1)){
         throw out_of_range("You are trying to erase past line limits!");
     }
     //check if the given page, row, and column are non-negative
