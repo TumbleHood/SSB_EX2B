@@ -1,4 +1,4 @@
-#include "sources/Direction.hpp"
+#include "Direction.hpp"
 #include <string>
 #include <vector>
 #include <array>

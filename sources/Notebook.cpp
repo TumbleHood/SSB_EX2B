@@ -1,5 +1,5 @@
 #include "Notebook.hpp"
-#include "sources/Direction.hpp"
+#include "Direction.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
