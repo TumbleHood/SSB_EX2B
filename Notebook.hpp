@@ -1,22 +1,35 @@
 #include "Direction.hpp"
 #include <string>
+#include <vector>
+#include <array>
 
 using ariel::Direction;
 using namespace std;
 
 namespace ariel{
+    
+    class Line{
+        public:
+            int num;
+            array<char, 100> chars;
+            Line(int lineNum);
+    };
+
+    class Page{
+        public:
+            int num;
+            vector<Line*> lines;
+            Page(int pageNum);
+            void write(int row, int column, Direction direction, const string& text);
+    };
 
     class Notebook{
         public:
+            vector<Page*> pages;
             Notebook();
             void write(int page, int row, int column, Direction direction, const string& text);
             string read(int page, int row, int column, Direction direction, int length);
             void erase(int page, int row, int column, Direction direction, int length);
             void show(int page);
-    };
-
-    class Page{
-        public:
-            Page();
     };
 }
