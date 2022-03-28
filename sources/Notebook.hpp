@@ -3,6 +3,10 @@
 #include <tr1/unordered_map>
 #include <array>
 
+#define MIN_ASCII 32
+#define MAX_ASCII 125
+#define MAX_LINE 100
+
 using ariel::Direction;
 using namespace std;
 using namespace tr1;
