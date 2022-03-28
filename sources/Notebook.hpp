@@ -10,16 +10,16 @@ namespace ariel{
 
     class Line{
         public:
-            int num;
+            unsigned int num;
             array<char, 100> chars;
-            Line(int lineNum);
+            Line(unsigned int lineNum);
     };
 
     class Page{
         public:
-            int num;
+            unsigned int num;
             vector<Line*> lines;
-            Page(int pageNum);
+            Page(unsigned int pageNum);
     };
 
     class Notebook{
