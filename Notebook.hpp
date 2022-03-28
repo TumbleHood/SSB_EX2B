@@ -7,7 +7,7 @@ using ariel::Direction;
 using namespace std;
 
 namespace ariel{
-    
+
     class Line{
         public:
             int num;
@@ -20,7 +20,6 @@ namespace ariel{
             int num;
             vector<Line*> lines;
             Page(int pageNum);
-            void write(int row, int column, Direction direction, const string& text);
     };
 
     class Notebook{
