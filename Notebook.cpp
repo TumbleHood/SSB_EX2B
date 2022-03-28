@@ -1,5 +1,6 @@
 #include "Notebook.hpp"
 #include "Direction.hpp"
+#include <iostream>
 #include <string>
 #include <vector>
 #include <array>
@@ -15,18 +16,79 @@ Notebook::Notebook(){
 }
 
 void Notebook::write(int page, int row, int column, Direction direction, const string& text){
+    //check if the given arguments exceed the 100 chars limit
+    if (direction == Direction::Horizontal && column + text.size() > 100){
+        throw out_of_range("You are trying to write past the 100 characters limit!");
+    }
+    //check if the given page, row, and column are non-negative
+    if (page < 0 || row < 0 || column < 0){
+        throw invalid_argument("Page, Row, and Column arguments must be non-negative!");
+    }
     int i = 0;
+    //getting to the matching page or right after it (since the pages are stored)
     while (i < pages.size() && pages[i]->num < page){
         i++;
     }
-    if (pages[i]->num == page){
-        //write
+    //if we reached the page number it means the page exists
+    if (pages.size() > 0 && pages[i]->num == page){
+        int j = 0;
+        //getting to the matching line or right after it (since the lines are stored)
+        while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < row){
+            j++;
+        }
+        //cases for horizontal
+        if (direction == Direction::Horizontal){
+            //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
+            if (pages[i]->lines.size() > 0 && pages[i]->lines[j]->num != row){
+                Line *l = new Line(row);
+                pages[i]->lines.insert(pages[i]->lines.begin() + j, l);
+            }
+            //go over the given text and insert it in the correct positions
+            for (int k = 0; k < text.size(); k++){
+                pages[i]->lines[j]->chars[column + k] = text[k];
+            }
+        }
+        //cases for vertical
+        else{
+            //go over the given text
+            for (int k = 0; k < text.size(); k++){
+                //each time, find the matching line
+                while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < row + k){
+                        j++;
+                }
+                //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
+                if (pages[i]->lines.size() > 0 && pages[i]->lines[j + k]->num != row){
+                    Line *l = new Line(row + k);
+                    pages[i]->lines.insert(pages[i]->lines.begin() + j, l);
+                }
+                //insert the current characted at the matching position
+                pages[i]->lines[j + k]->chars[column] = text[k];
+            }
+        }
     }
+    //if the page doesn't exist we create a new one
     else{
-        //create
+        Page *p = new Page(page);
+        pages.insert(pages.begin() + i, p);
+        //horizontal case
+        if (direction == Direction::Horizontal){
+            //since the page didn't exist, it has to lines, so we create a new one at position 0 and insert the text
+            Line *l = new Line(row);
+            pages[i]->lines.insert(pages[i]->lines.begin(), l);
+            for (int k = 0; k < text.size(); k++){
+                pages[i]->lines[0]->chars[column + k] = text[k];
+            }
+        }
+        //vertical case
+        else{
+            for (int k = 0; k < text.size(); k++){
+                //since the page didn't exist and it has no lines, each time we create a new line and insert
+                Line *l = new Line(row + k);
+                pages[i]->lines.insert(pages[i]->lines.begin() + k, l);
+                pages[i]->lines[k]->chars[column] = text[k];
+            }
+        }
     }
-    Page *p = new Page(page);
-    p->write(row, column, direction, text);
 }
 
 string Notebook::read(int page, int row, int column, Direction direction, int length){
@@ -41,21 +103,21 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
     }
     string str;
     int i = 0;
-    //getting to the matching page or right after it (since the pages are stored sorted)
+    //getting to the matching page or right after it (since the pages are stored)
     while (i < pages.size() && pages[i]->num < page){
         i++;
     }
     //checking if we arrived at the given page (since if it doesn't exist we passed it)
-    if (pages[i]->num == page){
+    if (pages.size() > 0 && pages[i]->num == page){
         int j = 0;
-        //getting to the matching line (row) or right after it (since the lines are stored sorted)
+        //getting to the matching line (row) or right after it (since the lines are stored)
         while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < row){
             j++;
         }
         //cases for horizontal
         if (direction == Direction::Horizontal){
             //if we arrived at the given line (row)
-            if (pages[i]->lines[j]->num == row){
+            if (pages[i]->lines.size() > 0 && pages[i]->lines[j]->num == row){
                 //read the content of the line from 'column' to 'column + length'
                 for (int k = 0; k < length; k++){
                     str += pages[i]->lines[j]->chars[k + column];
@@ -78,7 +140,7 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
                         j++;
                 }
                 //we read the character at 'column' of the line
-                if (pages[i]->lines[j + k]->num == row){
+                if (pages[i]->lines.size() > 0 && pages[i]->lines[j + k]->num == row){
                     str += pages[i]->lines[j + k]->chars[column];
                 }
                 //the line doesn't exist therefore we read '_' this time
@@ -101,25 +163,25 @@ void Notebook::erase(int page, int row, int column, Direction direction, int len
 }
 
 void Notebook::show(int page){
+    int i = 0;
+    while (i < pages.size() && pages[i]->num < page){
+        i++;
+    }
+    if (pages.size() > 0 && pages[i]->num == page){
+        int k = 0;
+        for (int j = 0; j < pages[i]->lines.size(); j++){
+            while (k < pages[i]->lines[j]->num){
+                cout << read(page, k, 0, Direction::Horizontal, 100);
+                k++;
+            }
+        }
+    }
 }
 
 
 Page::Page(int pageNum){
     num = pageNum;
     lines = {};
-}
-
-void Page::write(int row, int column, Direction direction, const string& text){
-    int i = 0;
-    while (i < lines.size() && lines[i]->num < row){
-        i++;
-    }
-    if (direction == Direction::Horizontal){
-        Line *l = new Line(row);
-        for (int j = column, t = 0; j < text.size(); j++, t++){
-            l->chars[j] = text[t];
-        }
-    }
 }
 
 Line::Line(int lineNum){
