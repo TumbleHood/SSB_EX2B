@@ -2,28 +2,19 @@
 #include "Direction.hpp"
 #include <iostream>
 #include <string>
-#include <vector>
+#include <tr1/unordered_map>
 #include <array>
 
-#define MAX_ASCII 125
 #define MIN_ASCII 32
+#define MAX_ASCII 125
 
 using ariel::Direction;
-using namespace ariel;
 using namespace std;
-
-Line::Line(unsigned int lineNum){
-    num = lineNum;
-    chars.fill('_');
-}
-
-Page::Page(unsigned int pageNum){
-    num = pageNum;
-    lines = {};
-}
+using namespace tr1;
+using namespace ariel;
 
 Notebook::Notebook(){
-    pages = {};
+    nb = unordered_map<unsigned int, unordered_map<unsigned int, array<char, 100>>>();
 }
 
 void Notebook::write(int page, int row, int column, Direction direction, const string& text){
@@ -42,232 +33,158 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
     if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + text.length() >= 100)){
         throw out_of_range("You are trying to write past the 100 characters limit!");
     }
-    //if pages is empty we create a new one
-    if (pages.empty()){
-        Page *p = new Page(ui_page);
-        pages.insert(pages.begin(), p);
+    //if the notebook doesn't contain the page we create it
+    if(nb.find(ui_page) == nb.end()){
+        unordered_map<unsigned int, array<char, 100>> m;
+        nb.insert({ui_page, m});
     }
-    //getting to the matching page or right after it (since the pages are stored)
-    unsigned int i = 0;
-    while (i < pages.size() && pages[i]->num < ui_page){
-        i++;
-    }
-    //we went over all pages and the given page doesn't exist so we create a new one
-    if (i >= pages.size()){
-        Page *p = new Page(ui_page);
-        pages.insert(pages.end(), p);
-    }
-    //if we reached the page number it means the page exists
-    if (pages[i]->num == ui_page){
-        //if there are no lines we create a new one
-        if (pages[i]->lines.empty()){
-            Line *l = new Line(ui_row);
-            pages[i]->lines.insert(pages[i]->lines.begin(), l);
+    //horizontal
+    if (direction == Direction::Horizontal){
+        //if the page doesn't contain the row we create it
+        if (nb[ui_page].find(ui_row) == nb[ui_page].end()){
+            array<char, 100> a;
+            a.fill('_');
+            nb[ui_page].insert({ui_row, a});
         }
-        //cases for horizontal
-        if (direction == Direction::Horizontal){
-            //going over all lines
-            unsigned int j = 0;
-            while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row){
-                j++;
+        //go over the text
+        for (unsigned int i = 0; i < text.length(); i++){
+            //check if the characters are empty
+            if (nb[ui_page][ui_row][ui_column + i] != '_'){
+                throw overflow_error("You are trying to write on existing text!");
             }
-            //we went over all the lines and the given row doesn't exist so we create it
-            if (j >= pages[i]->lines.size()){
-                Line *l = new Line(ui_row);
-                pages[i]->lines.insert(pages[i]->lines.end(), l);
+            if (text[i] == ' '){
+                nb[ui_page][ui_row][ui_column + i] = '_';
             }
-            //write the text in the correct place
-            for (unsigned int k = 0; k < text.length(); k++){
-                if (pages[i]->lines[j]->chars[k + ui_column] != '_'){
-                    throw overflow_error("You are trying to write on existing text!");
-                }
-                if (text[k] == ' '){
-                    pages[i]->lines[j]->chars[k + ui_column] = '_';
-                }
-                else{
-                    pages[i]->lines[j]->chars[k + ui_column] = text[k];
-                }
+            else{
+                nb[ui_page][ui_row][ui_column + i] = text[i];
             }
-            pages[i]->lines.shrink_to_fit();
         }
-        //cases for vertical
-        else{
-            unsigned int j = 0;
-            //go over the given text
-            for (unsigned int k = 0; k < text.length(); k++){
-                //each time, find the matching line
-                while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row + k){
-                    j++;
-                }
-                //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
-                if (j >= pages[i]->lines.size()){
-                    Line *l = new Line(ui_row + k);
-                    pages[i]->lines.insert(pages[i]->lines.end(), l);
-                }
-                //insert the current characted at the matching position
-                if (pages[i]->lines[j]->chars[k + ui_column] != '_'){
-                    throw overflow_error("You are trying to write on existing text!");
-                }
-                if (text[k] == ' '){
-                    pages[i]->lines[j]->chars[k + ui_column] = '_';
-                }
-                else{
-                    pages[i]->lines[j]->chars[k + ui_column] = text[k];
-                }
-                pages[i]->lines.shrink_to_fit();
+    }
+    //vertical
+    else{
+        //go over the text
+        for (unsigned int i = 0; i < text.length(); i++){
+            //if the page doesn't contain the row we create it
+            if (nb[ui_page].find(ui_row + i) == nb[ui_page].end()){
+                array<char, 100> a;
+                a.fill('_');
+                nb[ui_page].insert({ui_row + i, a});
+            }
+            if (text[i] == ' '){
+                nb[ui_page][ui_row + i][ui_column] = '_';
+            }
+            else{
+                nb[ui_page][ui_row + i][ui_column] = text[i];
             }
         }
     }
 }
 
 string Notebook::read(int page, int row, int column, Direction direction, int length){
-    //check if the given page, row, and column are non-negative
+    //check if the given page, row, column and length are non-negative
     if (page < 0 || row < 0 || column < 0 || length < 0){
         throw invalid_argument("Page, Row, Column and Length arguments must be non-negative!");
     }
-    //turn all arguments into unsigned int since they are non-negative (and we need to check size)
     unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (direction == Direction::Horizontal && ui_column + ui_length > 100){
+    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length >= 100)){
         throw out_of_range("You are trying to read past the 100 characters limit!");
     }
+    //setting the default string to 'length' times the character '_'
     string str;
-    //dummy_str = 'length' times the character '_' - we save it in case of missing page / line (horizontal)
-    string dummy_str;
-    for (unsigned int k = 0; k < length; k++){
-        dummy_str += '_';
+    for (unsigned int i = 0; i < length; i++){
+        str += '_';
     }
-    //if there are no pages we read the dummy string
-    if (pages.empty()){
-        return dummy_str;
-    }
-    //getting to the matching page or right after it (since the pages are stored)
-    unsigned int i = 0;
-    while (i < pages.size() && pages[i]->num < ui_page){
-        i++;
-    }
-    //we went over all the pages and the given page doesn't exist so we read the dummy string
-    if (i >= pages.size()){
-        return dummy_str;
-    }
-    //checking if we arrived at the given page (since if it doesn't exist we passed it)
-    if (pages[i]->num == ui_page){
-        //there are no lines so we read the dummy string
-        if (pages[i]->lines.empty()){
-            return dummy_str;
-        }
-        //cases for horizontal
-        if (direction == Direction::Horizontal){
-            //going over all lines
-            unsigned int j = 0;
-            while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row){
-                j++;
-            }
-            //we went over all the lines and the given row doesn't exist so we read the dummy string
-            if (j >= pages[i]->lines.size()){
-                return dummy_str;
-            }
-            for (unsigned int k = 0; k < ui_length; k++){
-                str += pages[i]->lines[j]->chars[k + ui_column];
-            }
-            return str;
-        }
-        //cases for vertical
-        unsigned int j = 0;
-        for (unsigned int k = 0; k < ui_length; k++){
-            //checking if we are at the correct line
-            while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row + k){
-                j++;
-            }
-            //we read the character at 'column' of the line
-            if (j >= pages[i]->lines.size()){
-                str += '_';
-            }
-            //the line doesn't exist therefore we read '_' this time
-            else{
-                str += pages[i]->lines[j]->chars[ui_column];
-            }
-        }
+    //if the notebook doesn't contain the page we return the default string
+    if(nb.find(ui_page) == nb.end()){
         return str;
     }
-    return dummy_str;
+    //horizontal
+    if (direction == Direction::Horizontal){
+        //if the page doesn't contain the row we return the default string
+        if (nb[ui_page].find(ui_row) == nb[ui_page].end()){
+            return str;
+        }
+        //go over the text
+        for (unsigned int i = 0; i < length; i++){
+            str[i] = nb[ui_page][ui_row][ui_column + i];
+        }
+    }
+    //vertical
+    else{
+        //go over the text
+        for (unsigned int i = 0; i < length; i++){
+            //if the page doesn't contain the row we create it
+            if (nb[ui_page].find(ui_row + i) == nb[ui_page].end()){
+                str[i] = '_';
+            }
+            else{
+                str[i] = nb[ui_page][ui_row + i][ui_column];
+            }
+        }
+    }
+    return str;
 }
 
 void Notebook::erase(int page, int row, int column, Direction direction, int length){
-    //check if the given page, row, and column are non-negative
+    //check if the given page, row, column and length are non-negative
     if (page < 0 || row < 0 || column < 0 || length < 0){
         throw invalid_argument("Page, Row, Column and Length arguments must be non-negative!");
     }
     unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (direction == Direction::Horizontal && ui_column + ui_length > 100){
+    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length >= 100)){
         throw out_of_range("You are trying to erase past the 100 characters limit!");
     }
-    //if pages is empty we create a new one
-    if (pages.empty()){
-        Page *p = new Page(ui_page);
-        pages.insert(pages.begin(), p);
+    //if the notebook doesn't contain the page we create it
+    if(nb.find(ui_page) == nb.end()){
+        unordered_map<unsigned int, array<char, 100>> m;
+        nb.insert({ui_page, m});
     }
-    //getting to the matching page or right after it (since the pages are stored)
-    unsigned int i = 0;
-    while (i < pages.size() && pages[i]->num < ui_page){
-        i++;
-    }
-    //we went over all pages and the given page doesn't exist so we create a new one
-    if (i >= pages.size()){
-        Page *p = new Page(ui_page);
-        pages.insert(pages.end(), p);
-    }
-    //if we reached the page number it means the page exists
-    if (pages[i]->num == ui_page){
-        //if there are no lines we create a new one
-        if (pages[i]->lines.empty()){
-            Line *l = new Line(ui_row);
-            pages[i]->lines.insert(pages[i]->lines.begin(), l);
+    //horizontal
+    if (direction == Direction::Horizontal){
+        //if the page doesn't contain the row we create it
+        if (nb[ui_page].find(ui_row) == nb[ui_page].end()){
+            array<char, 100> a;
+            a.fill('_');
+            nb[ui_page].insert({ui_row, a});
         }
-        //cases for horizontal
-        if (direction == Direction::Horizontal){
-            //going over all lines
-            unsigned int j = 0;
-            while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row){
-                j++;
-            }
-            //we went over all the lines and the given row doesn't exist so we create it
-            if (j >= pages[i]->lines.size()){
-                Line *l = new Line(ui_row);
-                pages[i]->lines.insert(pages[i]->lines.end(), l);
-            }
-            //erase in the correct place
-            for (unsigned int k = 0; k < ui_length; k++){
-                pages[i]->lines[j]->chars[k + ui_column] = '~';
-            }
-            pages[i]->lines.shrink_to_fit();
+        //go over the text
+        for (unsigned int i = 0; i < ui_length; i++){
+            nb[ui_page][ui_row][ui_column + i] = '~';
         }
-        //cases for vertical
-        else{
-            unsigned int j = 0;
-            //go over the given text
-            for (unsigned int k = 0; k < ui_length; k++){
-                //each time, find the matching line
-                while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < ui_row + k){
-                    j++;
-                }
-                //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
-                if (j >= pages[i]->lines.size()){
-                    Line *l = new Line(ui_row + k);
-                    pages[i]->lines.insert(pages[i]->lines.end(), l);
-                }
-                //erase at the matching position
-                pages[i]->lines[j]->chars[ui_column] = '~';
-                
-                pages[i]->lines.shrink_to_fit();
+    }
+    //vertical
+    else{
+        //go over the text
+        for (unsigned int i = 0; i < ui_length; i++){
+            //if the page doesn't contain the row we create it
+            if (nb[ui_page].find(ui_row + i) == nb[ui_page].end()){
+                array<char, 100> a;
+                a.fill('_');
+                nb[ui_page].insert({ui_row + i, a});
             }
+            nb[ui_page][ui_row + i][ui_column] = '~';
         }
     }
 }
 
 void Notebook::show(int page){
-    for (int i = 0; i < 10; i++){
-        cout << read(page, i, 0, Direction::Horizontal, 10) << endl;
+    if (page < 0){
+        throw invalid_argument("Page variable must be non-negative!");
+    }
+    unsigned int ui_page = (unsigned int)page;
+    if (nb.find(ui_page) != nb.end()){
+        for (unsigned int i = 0, ctr = 0; ctr < nb[ui_page].size() || i < 10; i++){
+            if (nb[ui_page].find(i) != nb[ui_page].end()){
+                ctr++;
+            }
+            cout << read(page, (int)i, 0, Direction::Horizontal, 100) << endl;
+        }
+    }
+    else{
+        for (unsigned int i = 0; i < 10; i++){
+            cout << "____________________________________________________________________________________________________" << endl;
+        }
     }
 }

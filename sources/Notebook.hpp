@@ -1,30 +1,16 @@
 #include "Direction.hpp"
 #include <string>
-#include <vector>
+#include <tr1/unordered_map>
 #include <array>
 
 using ariel::Direction;
 using namespace std;
+using namespace tr1;
 
 namespace ariel{
-
-    class Line{
-        public:
-            unsigned int num;
-            array<char, 100> chars;
-            Line(unsigned int lineNum);
-    };
-
-    class Page{
-        public:
-            unsigned int num;
-            vector<Line*> lines;
-            Page(unsigned int pageNum);
-    };
-
     class Notebook{
         public:
-            vector<Page*> pages;
+            unordered_map<unsigned int, unordered_map<unsigned int, array<char, 100>>> nb;
             Notebook();
             void write(int page, int row, int column, Direction direction, const string& text);
             string read(int page, int row, int column, Direction direction, int length);
