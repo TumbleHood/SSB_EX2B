@@ -160,6 +160,80 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
 }
 
 void Notebook::erase(int page, int row, int column, Direction direction, int length){
+    //check if the given arguments exceed the 100 chars limit or go to the negative (in case of negative length)
+    if ((direction == Direction::Horizontal && (column + length > 100 || column + length < -1)) || 
+         direction == Direction::Vertical && row + length < -1){
+        throw out_of_range("You are trying to erase past line limits!");
+    }
+    //check if the given page, row, and column are non-negative
+    if (page < 0 || row < 0 || column < 0){
+        throw invalid_argument("Page, Row, and Column arguments must be non-negative!");
+    }
+    int i = 0;
+    //getting to the matching page or right after it (since the pages are stored)
+    while (i < pages.size() && pages[i]->num < page){
+        i++;
+    }
+    //if we reached the page number it means the page exists
+    if (pages.size() > 0 && pages[i]->num == page){
+        int j = 0;
+        //getting to the matching line or right after it (since the lines are stored)
+        while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < row){
+            j++;
+        }
+        //cases for horizontal
+        if (direction == Direction::Horizontal){
+            //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
+            if (pages[i]->lines.size() > 0 && pages[i]->lines[j]->num != row){
+                Line *l = new Line(row);
+                pages[i]->lines.insert(pages[i]->lines.begin() + j, l);
+            }
+            //go over the given text and insert it in the correct positions
+            for (int k = 0; k < length; k++){
+                pages[i]->lines[j]->chars[column + k] = '~';
+            }
+        }
+        //cases for vertical
+        else{
+            //go over the given text
+            for (int k = 0; k < length; k++){
+                //each time, find the matching line
+                while (j < pages[i]->lines.size() && pages[i]->lines[j]->num < row + k){
+                        j++;
+                }
+                //if the line doesn't exist we create a new one and insert it in the current position (since it is sorted)
+                if (pages[i]->lines.size() > 0 && pages[i]->lines[j + k]->num != row){
+                    Line *l = new Line(row + k);
+                    pages[i]->lines.insert(pages[i]->lines.begin() + j, l);
+                }
+                //insert the current characted at the matching position
+                pages[i]->lines[j + k]->chars[column] = '~';
+            }
+        }
+    }
+    //if the page doesn't exist we create a new one
+    else{
+        Page *p = new Page(page);
+        pages.insert(pages.begin() + i, p);
+        //horizontal case
+        if (direction == Direction::Horizontal){
+            //since the page didn't exist, it has to lines, so we create a new one at position 0 and insert the text
+            Line *l = new Line(row);
+            pages[i]->lines.insert(pages[i]->lines.begin(), l);
+            for (int k = 0; k < length; k++){
+                pages[i]->lines[0]->chars[column + k] = '~';
+            }
+        }
+        //vertical case
+        else{
+            for (int k = 0; k < length; k++){
+                //since the page didn't exist and it has no lines, each time we create a new line and insert
+                Line *l = new Line(row + k);
+                pages[i]->lines.insert(pages[i]->lines.begin() + k, l);
+                pages[i]->lines[k]->chars[column] = '~';
+            }
+        }
+    }
 }
 
 void Notebook::show(int page){
