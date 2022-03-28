@@ -5,21 +5,16 @@
 #include <tr1/unordered_map>
 #include <array>
 
-#define MIN_ASCII 32
-#define MAX_ASCII 125
-
 using ariel::Direction;
 using namespace std;
 using namespace tr1;
 using namespace ariel;
 
 Notebook::Notebook(){
-    nb = unordered_map<unsigned int, unordered_map<unsigned int, array<char, 100>>>();
+    nb = unordered_map<unsigned int, unordered_map<unsigned int, array<char, MAX_LINE>>>();
 }
 
 void Notebook::write(int page, int row, int column, Direction direction, const string& text){
-    if (text.length() > 1000){
-    }
     //check if the string contains illegal characters
     for (unsigned int t = 0; t < text.length(); t++){
         if (text[t] < MIN_ASCII || text[t] > MAX_ASCII){
@@ -30,21 +25,23 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
     if (page < 0 || row < 0 || column < 0){
         throw invalid_argument("Page, Row, and Column arguments must be non-negative!");
     }
-    unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column;
+    unsigned int ui_page = (unsigned int)page;
+    unsigned int ui_row = (unsigned int)row;
+    unsigned int ui_column = (unsigned int)column;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + text.length() > 100)){
+    if (ui_column >= MAX_LINE || (direction == Direction::Horizontal && ui_column + text.length() > MAX_LINE)){
         throw out_of_range("You are trying to write past the 100 characters limit!");
     }
     //if the notebook doesn't contain the page we create it
     if(nb.find(ui_page) == nb.end()){
-        unordered_map<unsigned int, array<char, 100>> m;
+        unordered_map<unsigned int, array<char, MAX_LINE>> m;
         nb.insert({ui_page, m});
     }
     //horizontal
     if (direction == Direction::Horizontal){
         //if the page doesn't contain the row we create it
         if (nb[ui_page].find(ui_row) == nb[ui_page].end()){
-            array<char, 100> a;
+            array<char, MAX_LINE> a = {};
             a.fill('_');
             nb[ui_page].insert({ui_row, a});
         }
@@ -63,7 +60,7 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
         for (unsigned int i = 0; i < text.length(); i++){
             //if the page doesn't contain the row we create it
             if (nb[ui_page].find(ui_row + i) == nb[ui_page].end()){
-                array<char, 100> a;
+                array<char, MAX_LINE> a = {};
                 a.fill('_');
                 nb[ui_page].insert({ui_row + i, a});
             }
@@ -80,9 +77,12 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
     if (page < 0 || row < 0 || column < 0 || length < 0){
         throw invalid_argument("Page, Row, Column and Length arguments must be non-negative!");
     }
-    unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
+    unsigned int ui_page = (unsigned int)page;
+    unsigned int ui_row = (unsigned int)row;
+    unsigned int ui_column = (unsigned int)column;
+    unsigned int ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length > 100)){
+    if (ui_column >= MAX_LINE || (direction == Direction::Horizontal && ui_column + ui_length > MAX_LINE)){
         throw out_of_range("You are trying to read past the 100 characters limit!");
     }
     //setting the default string to 'length' times the character '_'
@@ -126,21 +126,24 @@ void Notebook::erase(int page, int row, int column, Direction direction, int len
     if (page < 0 || row < 0 || column < 0 || length < 0){
         throw invalid_argument("Page, Row, Column and Length arguments must be non-negative!");
     }
-    unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
+    unsigned int ui_page = (unsigned int)page;
+    unsigned int ui_row = (unsigned int)row;
+    unsigned int ui_column = (unsigned int)column;
+    unsigned int ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length > 100)){
+    if (ui_column >= MAX_LINE || (direction == Direction::Horizontal && ui_column + ui_length > MAX_LINE)){
         throw out_of_range("You are trying to erase past the 100 characters limit!");
     }
     //if the notebook doesn't contain the page we create it
     if(nb.find(ui_page) == nb.end()){
-        unordered_map<unsigned int, array<char, 100>> m;
+        unordered_map<unsigned int, array<char, MAX_LINE>> m;
         nb.insert({ui_page, m});
     }
     //horizontal
     if (direction == Direction::Horizontal){
         //if the page doesn't contain the row we create it
         if (nb[ui_page].find(ui_row) == nb[ui_page].end()){
-            array<char, 100> a;
+            array<char, MAX_LINE> a = {};
             a.fill('_');
             nb[ui_page].insert({ui_row, a});
         }
@@ -155,7 +158,7 @@ void Notebook::erase(int page, int row, int column, Direction direction, int len
         for (unsigned int i = 0; i < ui_length; i++){
             //if the page doesn't contain the row we create it
             if (nb[ui_page].find(ui_row + i) == nb[ui_page].end()){
-                array<char, 100> a;
+                array<char, MAX_LINE> a = {};
                 a.fill('_');
                 nb[ui_page].insert({ui_row + i, a});
             }
@@ -170,15 +173,15 @@ void Notebook::show(int page){
     }
     unsigned int ui_page = (unsigned int)page;
     if (nb.find(ui_page) != nb.end()){
-        for (unsigned int i = 0, ctr = 0; ctr < nb[ui_page].size() || i < 10; i++){
+        for (unsigned int i = 0, ctr = 0; ctr < nb[ui_page].size() || i < MAX_LINE; i++){
             if (nb[ui_page].find(i) != nb[ui_page].end()){
                 ctr++;
             }
-            cout << read(page, (int)i, 0, Direction::Horizontal, 100) << endl;
+            cout << read(page, (int)i, 0, Direction::Horizontal, MAX_LINE) << endl;
         }
     }
     else{
-        for (unsigned int i = 0; i < 10; i++){
+        for (unsigned int i = 0; i < MAX_LINE; i++){
             cout << "____________________________________________________________________________________________________" << endl;
         }
     }
