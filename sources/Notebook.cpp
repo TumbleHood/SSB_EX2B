@@ -18,6 +18,8 @@ Notebook::Notebook(){
 }
 
 void Notebook::write(int page, int row, int column, Direction direction, const string& text){
+    if (text.length() > 1000){
+    }
     //check if the string contains illegal characters
     for (unsigned int t = 0; t < text.length(); t++){
         if (text[t] < MIN_ASCII || text[t] > MAX_ASCII){
@@ -30,7 +32,7 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
     }
     unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + text.length() >= 100)){
+    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + text.length() > 100)){
         throw out_of_range("You are trying to write past the 100 characters limit!");
     }
     //if the notebook doesn't contain the page we create it
@@ -52,12 +54,7 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
             if (nb[ui_page][ui_row][ui_column + i] != '_'){
                 throw overflow_error("You are trying to write on existing text!");
             }
-            if (text[i] == ' '){
-                nb[ui_page][ui_row][ui_column + i] = '_';
-            }
-            else{
-                nb[ui_page][ui_row][ui_column + i] = text[i];
-            }
+            nb[ui_page][ui_row][ui_column + i] = text[i];
         }
     }
     //vertical
@@ -70,12 +67,10 @@ void Notebook::write(int page, int row, int column, Direction direction, const s
                 a.fill('_');
                 nb[ui_page].insert({ui_row + i, a});
             }
-            if (text[i] == ' '){
-                nb[ui_page][ui_row + i][ui_column] = '_';
+            if (nb[ui_page][ui_row + i][ui_column] != '_'){
+                throw overflow_error("You are trying to write on existing text!");
             }
-            else{
-                nb[ui_page][ui_row + i][ui_column] = text[i];
-            }
+            nb[ui_page][ui_row + i][ui_column] = text[i];
         }
     }
 }
@@ -87,7 +82,7 @@ string Notebook::read(int page, int row, int column, Direction direction, int le
     }
     unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length >= 100)){
+    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length > 100)){
         throw out_of_range("You are trying to read past the 100 characters limit!");
     }
     //setting the default string to 'length' times the character '_'
@@ -133,7 +128,7 @@ void Notebook::erase(int page, int row, int column, Direction direction, int len
     }
     unsigned int ui_page = (unsigned int)page, ui_row = (unsigned int)row, ui_column = (unsigned int)column, ui_length = (unsigned int)length;
     //check if the given arguments exceed the 100 chars limit
-    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length >= 100)){
+    if (ui_column >= 100 || (direction == Direction::Horizontal && ui_column + ui_length > 100)){
         throw out_of_range("You are trying to erase past the 100 characters limit!");
     }
     //if the notebook doesn't contain the page we create it
