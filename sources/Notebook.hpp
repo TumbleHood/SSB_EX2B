@@ -14,7 +14,7 @@ using namespace tr1;
 namespace ariel{
     class Notebook{
         public:
-            unordered_map<unsigned int, unordered_map<unsigned int, array<char, 100>>> nb;
+            unordered_map<unsigned int, unordered_map<unsigned int, array<char, MAX_LINE>>> nb;
             Notebook();
             void write(int page, int row, int column, Direction direction, const string& text);
             string read(int page, int row, int column, Direction direction, int length);
